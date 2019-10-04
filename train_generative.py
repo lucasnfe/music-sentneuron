@@ -6,12 +6,14 @@ import tensorflow as tf
 
 from midi_encoder import MIDIEncoder
 
-def build_model(vocab_size, embed_dim, lstm_units, batch_size):
+def build_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch_size):
     model = tf.keras.Sequential()
 
     model.add(tf.keras.layers.Embedding(vocab_size, embed_dim, batch_input_shape=[batch_size, None]))
-    model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, recurrent_initializer="glorot_uniform", dropout=0.05, recurrent_dropout=0.05))
-    model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, recurrent_initializer="glorot_uniform", dropout=0.05, recurrent_dropout=0.05))
+
+    for i in range(max(1, lstm_layers)):
+        model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, recurrent_initializer="glorot_uniform", dropout=0.5, recurrent_dropout=0.5))
+
     model.add(tf.keras.layers.Dense(vocab_size))
 
     return model
@@ -61,6 +63,7 @@ if __name__ == "__main__":
     parser.add_argument('--test' , type=str, required=False, help="Test dataset.")
     parser.add_argument('--embed', type=int, required=True, help="Embedding size.")
     parser.add_argument('--units', type=int, required=True, help="LSTM units.")
+    parser.add_argument('--layers', type=int, required=True, help="LSTM layers.")
     parser.add_argument('--batch', type=int, required=True, help="Batch size.")
     parser.add_argument('--epochs', type=int, required=True, help="Epochs.")
     parser.add_argument('--seqlen', type=int, required=True, help="Sequence lenght.")
@@ -78,9 +81,8 @@ if __name__ == "__main__":
     # Calculate vocab size
     vocab_size = len(vocab)
 
-    # Create dictionaries to support symbol to index conversion and vice-versa
+    # Create dict to support char to index conversion
     char2idx = { char:i for i,char in enumerate(vocab) }
-    idx2char = { i:char for i,char in enumerate(vocab) }
 
     # Save char2idx encoding as a json file for generate midi later
     with open("char2idx.json", "w") as f:
@@ -91,7 +93,7 @@ if __name__ == "__main__":
     test_dataset = build_dataset(encoded_midis_test.text, char2idx, opt.seqlen, opt.batch)
 
     # Build model
-    model = build_model(vocab_size, opt.embed, opt.units, opt.batch)
+    model = build_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch)
 
     # Train model
     history = train_model(model, train_dataset, test_dataset, opt.epochs, opt.lrate)
