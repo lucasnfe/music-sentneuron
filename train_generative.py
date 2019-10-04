@@ -6,13 +6,13 @@ import tensorflow as tf
 
 from midi_encoder import MIDIEncoder
 
-def build_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch_size):
+def build_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch_size, dropout):
     model = tf.keras.Sequential()
 
     model.add(tf.keras.layers.Embedding(vocab_size, embed_dim, batch_input_shape=[batch_size, None]))
 
     for i in range(max(1, lstm_layers)):
-        model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, recurrent_initializer="glorot_uniform", dropout=0.5, recurrent_dropout=0.5))
+        model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, recurrent_initializer="glorot_uniform", dropout=0.5, recurrent_dropout=dropout))
 
     model.add(tf.keras.layers.Dense(vocab_size))
 
@@ -60,14 +60,15 @@ if __name__ == "__main__":
     # Parse arguments
     parser = argparse.ArgumentParser(description='train_generative.py')
     parser.add_argument('--train', type=str, required=True, help="Train dataset.")
-    parser.add_argument('--test' , type=str, required=False, help="Test dataset.")
-    parser.add_argument('--embed', type=int, required=True, help="Embedding size.")
-    parser.add_argument('--units', type=int, required=True, help="LSTM units.")
-    parser.add_argument('--layers', type=int, required=True, help="LSTM layers.")
-    parser.add_argument('--batch', type=int, required=True, help="Batch size.")
-    parser.add_argument('--epochs', type=int, required=True, help="Epochs.")
-    parser.add_argument('--seqlen', type=int, required=True, help="Sequence lenght.")
-    parser.add_argument('--lrate', type=float, required=True, help="Learning rate.")
+    parser.add_argument('--test' , type=str, required=True, help="Test dataset.")
+    parser.add_argument('--embed', type=int, default=256, help="Embedding size.")
+    parser.add_argument('--units', type=int, default=512, help="LSTM units.")
+    parser.add_argument('--layers', type=int, default=2, help="LSTM layers.")
+    parser.add_argument('--batch', type=int, default=64, help="Batch size.")
+    parser.add_argument('--epochs', type=int, default=10, help="Epochs.")
+    parser.add_argument('--seqlen', type=int, default=100, help="Sequence lenght.")
+    parser.add_argument('--lrate', type=float, default=0.001, help="Learning rate.")
+    parser.add_argument('--drop', type=float, default=0.0, help="Dropout.")
     opt = parser.parse_args()
 
     # Encode midi files as text with vocab
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     test_dataset = build_dataset(encoded_midis_test.text, char2idx, opt.seqlen, opt.batch)
 
     # Build model
-    model = build_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch)
+    model = build_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch, opt.drop)
 
     # Train model
     history = train_model(model, train_dataset, test_dataset, opt.epochs, opt.lrate)
