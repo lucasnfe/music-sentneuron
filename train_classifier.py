@@ -1,22 +1,48 @@
+import json
+import argparse
+import tensorflow as tf
 
-def build_reprensetation_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch_size, dropout=0):
-    model = tf.keras.Sequential()
+from train_generative import build_generative_model
 
-    model.add(tf.keras.layers.Embedding(vocab_size, embed_dim, batch_input_shape=[batch_size, None]))
+def encode_sentence(model, text, char2idx):
+    # Here batch size == 1
+    model.reset_states()
+    print(model.get_layer(index=3).states)
 
-    for i in range(max(1, lstm_layers)):
-        model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, return_state=True, stateful=True, recurrent_initializer="glorot_uniform", dropout=dropout, recurrent_dropout=dropout))
+    for s in text.split(" "):
+        input_eval = tf.expand_dims([char2idx[s]], 0)
+        predictions = model(input_eval)
 
-    return model
+    print(model.get_layer(index=3).states)
 
 if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser(description='train_classifier.py')
-    parser.add_argument('--train', type=str, required=True, help="Train dataset.")
-    parser.add_argument('--test' , type=str, required=True, help="Test dataset.")
+    # parser.add_argument('--train', type=str, required=True, help="Train dataset.")
+    # parser.add_argument('--test' , type=str, required=True, help="Test dataset.")
     parser.add_argument('--model', type=str, required=True, help="Checkpoint dir.")
+    parser.add_argument('--ch2ix', type=str, required=True, help="JSON file with char2idx encoding.")
     parser.add_argument('--embed', type=int, required=True, help="Embedding size.")
     parser.add_argument('--units', type=int, required=True, help="LSTM units.")
     parser.add_argument('--layers', type=int, required=True, help="LSTM layers.")
     opt = parser.parse_args()
+
+    # Load char2idx dict from json file
+    with open(opt.ch2ix) as f:
+        char2idx = json.load(f)
+
+    # Calculate vocab_size from char2idx dict
+    vocab_size = len(char2idx)
+
+    # Rebuild model from checkpoint
+    model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, 1)
+    model.load_weights(tf.train.latest_checkpoint(opt.model))
+    model.build(tf.TensorShape([1, None]))
+
+    model.summary()
+
+    # Remove last layer because we want to represent labelled sentences using the lstm cell state
+    # model.pop()
+
+    encode_sentence(model, "n_74 t_144 n_38", char2idx)

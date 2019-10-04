@@ -3,7 +3,7 @@ import argparse
 import tensorflow as tf
 
 from midi_encoder    import MIDIEncoder
-from train_generative import build_model
+from train_generative import build_generative_model
 
 def generate_midi(model, start_string, sequence_length, char2idx, idx2char, temperature = 1.0):
     # Converting our start string to numbers (vectorizing)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     vocab_size = len(char2idx)
 
     # Rebuild model from checkpoint
-    model = build_model(vocab_size, opt.embed, opt.units, opt.layers, batch_size=1)
+    model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, batch_size=1)
     model.load_weights(tf.train.latest_checkpoint(opt.model))
     model.build(tf.TensorShape([1, None]))
 
