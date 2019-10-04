@@ -1,2 +1,3 @@
+char2idx.json
 training_checkpoints/*
 __pycache__/*

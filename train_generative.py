@@ -71,12 +71,16 @@ if __name__ == "__main__":
     encoded_midis_train = MIDIEncoder(opt.train)
     encoded_midis_test = MIDIEncoder(opt.test)
 
-    # Merge both char2idx encoding dict into a sorted dict
-    char2idx = {**encoded_midis_train.char2idx, **encoded_midis_test.char2idx}
-    char2idx = {key:char2idx[key] for key in sorted(char2idx)}
+    # Merge train and test vocabulary
+    vocab = list(encoded_midis_train.vocab | encoded_midis_test.vocab)
+    vocab.sort()
 
-    # Calculate total vocabulary size
-    vocab_size = len(char2idx)
+    # Calculate vocab size
+    vocab_size = len(vocab)
+
+    # Create dictionaries to support symbol to index conversion and vice-versa
+    char2idx = { char:i for i,char in enumerate(vocab) }
+    idx2char = { i:char for i,char in enumerate(vocab) }
 
     # Save char2idx encoding as a json file for generate midi later
     with open("char2idx.json", "w") as f:

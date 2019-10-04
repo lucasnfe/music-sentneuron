@@ -20,15 +20,6 @@ class MIDIEncoder:
     def __init__(self, datapath):
         self.text, self.vocab = self.load(datapath)
 
-        self.vocab = list(set(self.vocab))
-        self.vocab.sort()
-
-        self.vocab_size = len(self.vocab)
-
-        # Create dictionaries to support symbol to index conversion and vice-versa
-        self.char2idx = { symb:i for i,symb in enumerate(self.vocab) }
-        self.idx2char = { i:symb for i,symb in enumerate(self.vocab) }
-
     def load(self, datapath, sample_freq=4, piano_range=(33, 93), modulate_range=10, stretching_range=10):
         text = ""
         vocab = set()
