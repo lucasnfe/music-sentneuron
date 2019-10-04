@@ -1,0 +1,73 @@
+import json
+import argparse
+import tensorflow as tf
+
+from midi_encoder    import MIDIEncoder
+from train_generative import build_model
+
+def generate_midi(model, start_string, sequence_length, char2idx, idx2char, temperature = 1.0):
+    # Converting our start string to numbers (vectorizing)
+    input_eval = [char2idx[s] for s in start_string.split(" ")]
+    input_eval = tf.expand_dims(input_eval, 0)
+
+    # Empty string to store our results
+    midi_generated = []
+
+    # Here batch size == 1
+    model.reset_states()
+    for i in range(sequence_length):
+        predictions = model(input_eval)
+
+        # remove the batch dimension
+        predictions = tf.squeeze(predictions, 0)
+
+        # using a categorical distribution to predict the word returned by the model
+        predictions = predictions / temperature
+        predicted_id = tf.random.categorical(predictions, num_samples=1)[-1,0].numpy()
+
+        # We pass the predicted word as the next input to the model
+        # along with the previous hidden state
+        input_eval = tf.expand_dims([predicted_id], 0)
+
+        midi_generated.append(idx2char[predicted_id])
+
+    return start_string + " " + " ".join(midi_generated)
+
+def write_midi(encoded_midi, path):
+    # Base class checks if output path exists
+    midi = MIDIEncoder.encoding2midi(encoded_midi)
+    midi.open(path, "wb")
+    midi.write()
+    midi.close()
+
+if __name__ == "__main__":
+
+    # Parse arguments
+    parser = argparse.ArgumentParser(description='midi_generator.py')
+    parser.add_argument('--model', type=str, required=True, help="Checkpoint dir.")
+    parser.add_argument('--ch2ix', type=str, required=True, help="JSON file with char2idx encoding.")
+    parser.add_argument('--embed', type=int, required=True, help="Embedding size.")
+    parser.add_argument('--units', type=int, required=True, help="LSTM units.")
+    parser.add_argument('--seqlen', type=int, required=True, help="Sequence lenght.")
+    opt = parser.parse_args()
+
+    # Load char2idx dict from json file
+    with open(opt.ch2ix) as f:
+        char2idx = json.load(f)
+
+    # Create idx2char from char2idx dict
+    idx2char = {idx:char for char,idx in char2idx.items()}
+
+    # Calculate vocab_size from char2idx dict
+    vocab_size = len(char2idx)
+
+    # Rebuild model from checkpoint
+    model = build_model(vocab_size, opt.embed, opt.units, batch_size=1)
+    model.load_weights(tf.train.latest_checkpoint(opt.model))
+    model.build(tf.TensorShape([1, None]))
+
+    # Generate a midi as text
+    midi_txt = generate_midi(model, "\n", opt.seqlen, char2idx, idx2char)
+    print(midi_txt)
+
+    write_midi(midi_txt, "generated.mid")
