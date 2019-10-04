@@ -33,13 +33,6 @@ def generate_midi(model, start_string, sequence_length, char2idx, idx2char, temp
 
     return start_string + " " + " ".join(midi_generated)
 
-def write_midi(encoded_midi, path):
-    # Base class checks if output path exists
-    midi = MIDIEncoder.encoding2midi(encoded_midi)
-    midi.open(path, "wb")
-    midi.write()
-    midi.close()
-
 if __name__ == "__main__":
 
     # Parse arguments
@@ -48,6 +41,7 @@ if __name__ == "__main__":
     parser.add_argument('--ch2ix', type=str, required=True, help="JSON file with char2idx encoding.")
     parser.add_argument('--embed', type=int, required=True, help="Embedding size.")
     parser.add_argument('--units', type=int, required=True, help="LSTM units.")
+    parser.add_argument('--layers', type=int, required=True, help="LSTM layers.")
     parser.add_argument('--seqlen', type=int, required=True, help="Sequence lenght.")
     opt = parser.parse_args()
 
@@ -62,7 +56,7 @@ if __name__ == "__main__":
     vocab_size = len(char2idx)
 
     # Rebuild model from checkpoint
-    model = build_model(vocab_size, opt.embed, opt.units, batch_size=1)
+    model = build_model(vocab_size, opt.embed, opt.units, opt.layers, batch_size=1)
     model.load_weights(tf.train.latest_checkpoint(opt.model))
     model.build(tf.TensorShape([1, None]))
 
@@ -70,4 +64,4 @@ if __name__ == "__main__":
     midi_txt = generate_midi(model, "\n", opt.seqlen, char2idx, idx2char)
     print(midi_txt)
 
-    write_midi(midi_txt, "generated.mid")
+    MIDIEncoder.write(midi_txt, "generated.mid")

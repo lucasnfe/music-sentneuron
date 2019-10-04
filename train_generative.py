@@ -6,13 +6,13 @@ import tensorflow as tf
 
 from midi_encoder import MIDIEncoder
 
-def build_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch_size, dropout):
+def build_generative_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch_size, dropout=0):
     model = tf.keras.Sequential()
 
     model.add(tf.keras.layers.Embedding(vocab_size, embed_dim, batch_input_shape=[batch_size, None]))
 
     for i in range(max(1, lstm_layers)):
-        model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, recurrent_initializer="glorot_uniform", dropout=0.5, recurrent_dropout=dropout))
+        model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, recurrent_initializer="glorot_uniform", dropout=dropout, recurrent_dropout=dropout))
 
     model.add(tf.keras.layers.Dense(vocab_size))
 
@@ -29,15 +29,15 @@ def build_dataset(text, char2idx, seq_length, batch_size, buffer_size=10000):
 
     return dataset
 
-def train_loss(labels, logits):
+def train_generative_loss(labels, logits):
     return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
 
-def train_model(model, train_dataset, test_dataset, epochs, learning_rate):
+def train_generative_model(model, train_dataset, test_dataset, epochs, learning_rate):
     # Create Adam optimizer
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     # Compile model with Adam optimizer and crossentropy Loss funciton
-    model.compile(optimizer=optimizer, loss=train_loss)
+    model.compile(optimizer=optimizer, loss=train_generative_loss)
 
     # Directory where the checkpoints will be saved
     checkpoint_dir = './training_checkpoints'
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     test_dataset = build_dataset(encoded_midis_test.text, char2idx, opt.seqlen, opt.batch)
 
     # Build model
-    model = build_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch, opt.drop)
+    model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch, opt.drop)
 
     # Train model
-    history = train_model(model, train_dataset, test_dataset, opt.epochs, opt.lrate)
+    history = train_generative_model(model, train_dataset, test_dataset, opt.epochs, opt.lrate)
