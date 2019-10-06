@@ -4,7 +4,7 @@ import argparse
 import numpy      as np
 import tensorflow as tf
 
-from midi_encoder import MIDIEncoder
+import midi_encoder as me
 
 def build_generative_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch_size, dropout=0):
     model = tf.keras.Sequential()
@@ -72,11 +72,11 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     # Encode midi files as text with vocab
-    encoded_midis_train = MIDIEncoder(opt.train)
-    encoded_midis_test = MIDIEncoder(opt.test)
+    train_text, train_vocab = me.load(opt.train)
+    test_text, test_vocab = me.load(opt.test)
 
     # Merge train and test vocabulary
-    vocab = list(encoded_midis_train.vocab | encoded_midis_test.vocab)
+    vocab = list(train_vocab | test_vocab)
     vocab.sort()
 
     # Calculate vocab size
@@ -90,8 +90,8 @@ if __name__ == "__main__":
         json.dump(char2idx, f)
 
     # Build dataset from encoded midis
-    train_dataset = build_dataset(encoded_midis_train.text, char2idx, opt.seqlen, opt.batch)
-    test_dataset = build_dataset(encoded_midis_test.text, char2idx, opt.seqlen, opt.batch)
+    train_dataset = build_dataset(train_text, char2idx, opt.seqlen, opt.batch)
+    test_dataset = build_dataset(test_text, char2idx, opt.seqlen, opt.batch)
 
     # Build model
     model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch, opt.drop)

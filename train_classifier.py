@@ -1,26 +1,42 @@
+import os
+import csv
 import json
 import argparse
 import tensorflow as tf
+import midi_encoder as me
 
 from train_generative import build_generative_model
 
-def encode_sentence(model, text, char2idx):
-    # Here batch size == 1
+def encode_sentence(model, text, char2idx, layer_idx):
+    # Reset LSTMs hidden and cell states
     model.reset_states()
-    print(model.get_layer(index=3).states)
 
     for s in text.split(" "):
+        # Add the batch dimension
         input_eval = tf.expand_dims([char2idx[s]], 0)
         predictions = model(input_eval)
 
-    print(model.get_layer(index=3).states)
+    return model.get_layer(index=layer_idx).states[1]
+
+def build_dataset(datapath):
+    csv_file = open(datapath, "r")
+    data = csv.DictReader(csv_file)
+
+    for row in data:
+        label = row["label"]
+        filepath = row["filepath"]
+
+        data_dir = os.path.dirname(datapath)
+        phrase_path = os.path.join(data_dir, filepath) + ".mid"
+        encoding, vocab = me.load(phrase_path, transpose_range=1, stretching_range=1)
+        print(encoding)
 
 if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser(description='train_classifier.py')
-    # parser.add_argument('--train', type=str, required=True, help="Train dataset.")
-    # parser.add_argument('--test' , type=str, required=True, help="Test dataset.")
+    parser.add_argument('--train', type=str, required=True, help="Train dataset.")
+    parser.add_argument('--test' , type=str, required=True, help="Test dataset.")
     parser.add_argument('--model', type=str, required=True, help="Checkpoint dir.")
     parser.add_argument('--ch2ix', type=str, required=True, help="JSON file with char2idx encoding.")
     parser.add_argument('--embed', type=int, required=True, help="Embedding size.")
@@ -40,9 +56,7 @@ if __name__ == "__main__":
     model.load_weights(tf.train.latest_checkpoint(opt.model))
     model.build(tf.TensorShape([1, None]))
 
-    model.summary()
+    build_dataset(opt.train)
+    build_dataset(opt.test)
 
-    # Remove last layer because we want to represent labelled sentences using the lstm cell state
-    # model.pop()
-
-    encode_sentence(model, "n_74 t_144 n_38", char2idx)
+    encoding = encode_sentence(model, "n_74 t_144 n_38", char2idx, 3)

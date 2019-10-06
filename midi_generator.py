@@ -1,13 +1,15 @@
 import json
 import argparse
 import tensorflow as tf
+import midi_encoder as me
 
-from midi_encoder    import MIDIEncoder
 from train_generative import build_generative_model
 
 def generate_midi(model, start_string, sequence_length, char2idx, idx2char, temperature = 1.0):
     # Converting our start string to numbers (vectorizing)
     input_eval = [char2idx[s] for s in start_string.split(" ")]
+
+    # Add the batch dimension
     input_eval = tf.expand_dims(input_eval, 0)
 
     # Empty string to store our results
@@ -61,7 +63,7 @@ if __name__ == "__main__":
     model.build(tf.TensorShape([1, None]))
 
     # Generate a midi as text
-    midi_txt = generate_midi(model, "\n", opt.seqlen, char2idx, idx2char)
+    midi_txt = generate_midi(model, "t_89 w_2 v_108 d_eighth_0 n_58", opt.seqlen, char2idx, idx2char)
     print(midi_txt)
 
-    MIDIEncoder.write(midi_txt, "generated.mid")
+    me.write(midi_txt, "generated.mid")
