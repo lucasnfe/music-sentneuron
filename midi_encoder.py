@@ -104,17 +104,12 @@ def piano_roll2encoding(piano_roll):
     for version in piano_roll:
         version_encoding = []
 
-        current_tempo = "t_120"
         for i in range(len(version)):
-
             # Time events are stored at the last row
             tempo_change = version[i,-1][0]
             if tempo_change != 0:
-                current_tempo = "t_" + str(int(tempo_change))
-
-            # After every bar add last tempo mark.
-            if i % 16 == 0:
-                version_encoding.append(current_tempo)
+                tempo = "t_" + str(int(tempo_change))
+                version_encoding.append(tempo)
 
             # Process current time step of the piano_roll
             for j in range(len(version[i]) - 1):
