@@ -130,7 +130,7 @@ def piano_roll2encoding(piano_roll):
                     version_encoding.append("n_" + str(j))
 
             # End of time step
-            if version_encoding[-1][0] == "w":
+            if len(version_encoding) > 0 and version_encoding[-1][0] == "w":
                 # Increase wait by one
                 version_encoding[-1] = "w_" + str(int(version_encoding[-1].split("_")[1]) + 1)
             else:
