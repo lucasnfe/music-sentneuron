@@ -95,14 +95,14 @@ def midi2encoding(midi, sample_freq, piano_range, transpose_range, stretching_ra
 
 def piano_roll2encoding(piano_roll):
     # Transform piano roll into a list of notes in string format
-    lastTempo = -1
-    lastVelocity = -1
-    lastDuration = -1.0
-
     final_encoding = {}
 
     perform_i = 0
     for version in piano_roll:
+        lastTempo    = -1
+        lastVelocity = -1
+        lastDuration = -1.0
+
         version_encoding = []
 
         for i in range(len(version)):
