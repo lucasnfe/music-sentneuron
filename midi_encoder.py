@@ -95,6 +95,7 @@ def midi2encoding(midi, sample_freq, piano_range, transpose_range, stretching_ra
 
 def piano_roll2encoding(piano_roll):
     # Transform piano roll into a list of notes in string format
+    lastTempo = -1
     lastVelocity = -1
     lastDuration = -1.0
 
@@ -106,10 +107,10 @@ def piano_roll2encoding(piano_roll):
 
         for i in range(len(version)):
             # Time events are stored at the last row
-            tempo_change = version[i,-1][0]
-            if tempo_change != 0:
-                tempo = "t_" + str(int(tempo_change))
-                version_encoding.append(tempo)
+            tempo = version[i,-1][0]
+            if tempo != 0 and tempo != lastTempo:
+                version_encoding.append("t_" + str(int(tempo)))
+                lastTempo = tempo
 
             # Process current time step of the piano_roll
             for j in range(len(version[i]) - 1):
