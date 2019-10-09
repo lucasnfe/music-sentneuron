@@ -2,6 +2,7 @@ import os
 import csv
 import json
 import argparse
+import numpy as np
 import tensorflow as tf
 import midi_encoder as me
 
@@ -13,23 +14,65 @@ def encode_sentence(model, text, char2idx, layer_idx):
 
     for s in text.split(" "):
         # Add the batch dimension
-        input_eval = tf.expand_dims([char2idx[s]], 0)
-        predictions = model(input_eval)
+        try:
+            input_eval = tf.expand_dims([char2idx[s]], 0)
+            predictions = model(input_eval)
+        except KeyError:
+            print("Could not process char:", s)
 
-    return model.get_layer(index=layer_idx).states[1]
+    h_state, c_state = model.get_layer(index=layer_idx).states
 
-def build_dataset(datapath):
+    # remove the batch dimension
+    c_state = tf.squeeze(c_state, 0)
+
+    return c_state
+
+def build_classifier_model(input_size):
+    model = tf.keras.Sequential()
+    model.add(tf.keras.layers.Dense(units=1, input_dim=input_size, activation='sigmoid',
+                    kernel_regularizer=tf.keras.regularizers.l1(l=0.01),
+                      bias_regularizer=tf.keras.regularizers.l1(l=0.01)))
+    return model
+
+def build_dataset(datapath, generative_model, char2idx, layer_idx):
+    xs, ys = [], []
+
     csv_file = open(datapath, "r")
     data = csv.DictReader(csv_file)
 
     for row in data:
-        label = row["label"]
+        label = int(row["label"])
         filepath = row["filepath"]
 
         data_dir = os.path.dirname(datapath)
         phrase_path = os.path.join(data_dir, filepath) + ".mid"
-        encoding, vocab = me.load(phrase_path, transpose_range=1, stretching_range=1)
-        print(encoding)
+        encoded_path = os.path.join(data_dir, filepath) + ".npy"
+
+        # Load midi file as text
+        if os.path.isfile(encoded_path):
+            encoding = tf.convert_to_tensor(np.load(encoded_path))
+        else:
+            text, vocab = me.load(phrase_path, transpose_range=1, stretching_range=1)
+
+            # Encode midi text using generative lstm
+            encoding = encode_sentence(generative_model, text, char2idx, layer_idx=layer_idx)
+
+            # Save encoding in file to make it faster to load next time
+            np.save(encoded_path, encoding)
+
+        xs.append(encoding)
+        ys.append(label)
+
+    return xs, ys
+
+def train_generative_model(model, train_dataset, test_dataset, epochs, learning_rate=0.001):
+    # Create Adam optimizer
+    optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate)
+
+    # Compile model with Adam optimizer and crossentropy Loss funciton
+    model.compile(optimizer=optimizer, loss=tf.keras.losses.BinaryCrossentropy())
+
+    return model.fit(train_dataset, epochs=epochs, validation_data=test_dataset, callbacks=[checkpoint_callback])
 
 if __name__ == "__main__":
 
@@ -42,6 +85,7 @@ if __name__ == "__main__":
     parser.add_argument('--embed', type=int, required=True, help="Embedding size.")
     parser.add_argument('--units', type=int, required=True, help="LSTM units.")
     parser.add_argument('--layers', type=int, required=True, help="LSTM layers.")
+    parser.add_argument('--cellix', type=int, required=True, help="LSTM layer to use as encoder.")
     opt = parser.parse_args()
 
     # Load char2idx dict from json file
@@ -51,12 +95,14 @@ if __name__ == "__main__":
     # Calculate vocab_size from char2idx dict
     vocab_size = len(char2idx)
 
-    # Rebuild model from checkpoint
-    model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, 1)
-    model.load_weights(tf.train.latest_checkpoint(opt.model))
-    model.build(tf.TensorShape([1, None]))
+    # Rebuild generative model from checkpoint
+    generative_model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, 1)
+    generative_model.load_weights(tf.train.latest_checkpoint(opt.model))
+    generative_model.build(tf.TensorShape([1, None]))
 
-    build_dataset(opt.train)
-    build_dataset(opt.test)
+    # Build dataset from encoded labelled midis
+    train_dataset = build_dataset(opt.train, generative_model, char2idx, opt.cellix)
+    test_dataset = build_dataset(opt.test, generative_model, char2idx)
 
-    encoding = encode_sentence(model, "n_74 t_144 n_38", char2idx, 3)
+    # Build classifier model
+    classifier_model = build_classifier_model(opt.units)

@@ -29,7 +29,7 @@ def build_dataset(text, char2idx, seq_length, batch_size, buffer_size=10000):
 
     return dataset
 
-def train_generative_loss(labels, logits):
+def generative_loss(labels, logits):
     return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
 
 def train_generative_model(model, train_dataset, test_dataset, epochs, learning_rate):
@@ -37,7 +37,7 @@ def train_generative_model(model, train_dataset, test_dataset, epochs, learning_
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     # Compile model with Adam optimizer and crossentropy Loss funciton
-    model.compile(optimizer=optimizer, loss=train_generative_loss)
+    model.compile(optimizer=optimizer, loss=generative_loss)
 
     # Directory where the checkpoints will be saved
     checkpoint_dir = './training_checkpoints'
@@ -89,12 +89,12 @@ if __name__ == "__main__":
     with open("char2idx.json", "w") as f:
         json.dump(char2idx, f)
 
-    # Build dataset from encoded midis
+    # Build dataset from encoded unlabelled midis
     train_dataset = build_dataset(train_text, char2idx, opt.seqlen, opt.batch)
     test_dataset = build_dataset(test_text, char2idx, opt.seqlen, opt.batch)
 
-    # Build model
-    model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch, opt.drop)
+    # Build generative model
+    generative_model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch, opt.drop)
 
     # Train model
-    history = train_generative_model(model, train_dataset, test_dataset, opt.epochs, opt.lrate)
+    history = train_generative_model(generative_model, train_dataset, test_dataset, opt.epochs, opt.lrate)
