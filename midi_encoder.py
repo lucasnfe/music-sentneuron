@@ -1,6 +1,5 @@
 import os
-import re
-import json
+import argparse
 import numpy   as np
 import math    as ma
 import music21 as m21
@@ -358,3 +357,19 @@ def clamp_duration(duration, max=THREE_DOTTED_BREVE, min=THREE_DOTTED_32ND):
         duration = m21.duration.typeToDuration[duration_clossest_type]
 
     return duration
+
+if __name__ == "__main__":
+
+    # Parse arguments
+    parser = argparse.ArgumentParser(description='midi_encoder.py')
+    parser.add_argument('--path', type=str, required=True, help="Path to midi data.")
+    parser.add_argument('--transp', type=int, default=1, help="Transpose range.")
+    parser.add_argument('--strech', type=int, default=1, help="Time stretching range.")
+    opt = parser.parse_args()
+
+    # Load data and encoded it
+    text, vocab = load(opt.path, transpose_range=opt.transp, stretching_range=opt.strech)
+    print(text)
+
+    # Write all data to midi file
+    write(text, "encoded.mid")
