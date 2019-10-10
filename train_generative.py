@@ -12,7 +12,7 @@ def build_generative_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch
     model.add(tf.keras.layers.Embedding(vocab_size, embed_dim, batch_input_shape=[batch_size, None]))
 
     for i in range(max(1, lstm_layers)):
-        model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, recurrent_initializer="glorot_uniform", dropout=dropout, recurrent_dropout=dropout))
+        model.add(tf.keras.layers.LSTM(lstm_units, return_sequences=True, stateful=True, dropout=dropout, recurrent_dropout=dropout))
 
     model.add(tf.keras.layers.Dense(vocab_size))
 

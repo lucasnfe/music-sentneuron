@@ -7,8 +7,16 @@ import tensorflow as tf
 import midi_encoder as me
 
 from train_generative import build_generative_model
+from sklearn.linear_model import LogisticRegression
+
+def preprocess_sentence(text, front_pad='\n ', end_pad=''):
+    text = text.replace('\n', ' ').strip()
+    text = front_pad+text+end_pad
+    return text
 
 def encode_sentence(model, text, char2idx, layer_idx):
+    text = preprocess_sentence(text)
+
     # Reset LSTMs hidden and cell states
     model.reset_states()
 
@@ -23,16 +31,9 @@ def encode_sentence(model, text, char2idx, layer_idx):
     h_state, c_state = model.get_layer(index=layer_idx).states
 
     # remove the batch dimension
-    c_state = tf.squeeze(c_state, 0)
+    h_state = tf.squeeze(h_state, 0)
 
-    return c_state
-
-def build_classifier_model(input_size):
-    model = tf.keras.Sequential()
-    model.add(tf.keras.layers.Dense(units=1, input_dim=input_size, activation='sigmoid',
-                    kernel_regularizer=tf.keras.regularizers.l1(l=0.01),
-                      bias_regularizer=tf.keras.regularizers.l1(l=0.01)))
-    return model
+    return tf.math.tanh(h_state).numpy()
 
 def build_dataset(datapath, generative_model, char2idx, layer_idx):
     xs, ys = [], []
@@ -50,7 +51,7 @@ def build_dataset(datapath, generative_model, char2idx, layer_idx):
 
         # Load midi file as text
         if os.path.isfile(encoded_path):
-            encoding = tf.convert_to_tensor(np.load(encoded_path))
+            encoding = np.load(encoded_path)
         else:
             text, vocab = me.load(phrase_path, transpose_range=1, stretching_range=1)
 
@@ -65,14 +66,26 @@ def build_dataset(datapath, generative_model, char2idx, layer_idx):
 
     return xs, ys
 
-def train_generative_model(model, train_dataset, test_dataset, epochs, learning_rate=0.001):
-    # Create Adam optimizer
-    optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate)
+def train_classifier_model(train_dataset, test_dataset, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
+    trX, trY = train_dataset
+    teX, teY = test_dataset
 
-    # Compile model with Adam optimizer and crossentropy Loss funciton
-    model.compile(optimizer=optimizer, loss=tf.keras.losses.BinaryCrossentropy())
+    scores = []
 
-    return model.fit(train_dataset, epochs=epochs, validation_data=test_dataset, callbacks=[checkpoint_callback])
+    # Hyper-parameter optimization
+    for i, c in enumerate(C):
+        logreg_model = LogisticRegression(C=c, penalty=penalty, random_state=seed+i, solver="liblinear")
+        logreg_model.fit(trX, trY)
+
+        score = logreg_model.score(teX, teY)
+        scores.append(score)
+
+    c = C[np.argmax(scores)]
+
+    sent_classfier = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
+    sent_classfier.fit(trX, trY)
+
+    return sent_classfier.score(teX, teY) * 100.
 
 if __name__ == "__main__":
 
@@ -96,13 +109,16 @@ if __name__ == "__main__":
     vocab_size = len(char2idx)
 
     # Rebuild generative model from checkpoint
-    generative_model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, 1)
+    generative_model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, batch_size=1)
     generative_model.load_weights(tf.train.latest_checkpoint(opt.model))
     generative_model.build(tf.TensorShape([1, None]))
 
+    generative_model.summary()
+
     # Build dataset from encoded labelled midis
     train_dataset = build_dataset(opt.train, generative_model, char2idx, opt.cellix)
-    test_dataset = build_dataset(opt.test, generative_model, char2idx)
+    test_dataset = build_dataset(opt.test, generative_model, char2idx, opt.cellix)
 
-    # Build classifier model
-    classifier_model = build_classifier_model(opt.units)
+    # Train model
+    score = train_classifier_model(train_dataset, test_dataset)
+    print(score)
