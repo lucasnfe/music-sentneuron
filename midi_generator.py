@@ -5,7 +5,7 @@ import midi_encoder as me
 
 from train_generative import build_generative_model
 
-def generate_midi(model, start_string, sequence_length, char2idx, idx2char, temperature):
+def generate_midi(model, char2idx, idx2char, start_string="\n", sequence_length=256, temperature=1.0):
     # Converting our start string to numbers (vectorizing)
     input_eval = [char2idx[s] for s in start_string.split(" ")]
 
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     model.build(tf.TensorShape([1, None]))
 
     # Generate a midi as text
-    midi_txt = generate_midi(model, opt.seqinit, opt.seqlen, char2idx, idx2char, opt.temp)
+    midi_txt = generate_midi(model, char2idx, idx2char, opt.seqinit, opt.seqlen, opt.temp)
     print(midi_txt)
 
     me.write(midi_txt, "generated.mid")

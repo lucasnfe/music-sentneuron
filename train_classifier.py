@@ -1,6 +1,7 @@
 import os
 import csv
 import json
+import pickle
 import argparse
 import numpy as np
 import tensorflow as tf
@@ -31,9 +32,9 @@ def encode_sentence(model, text, char2idx, layer_idx):
     h_state, c_state = model.get_layer(index=layer_idx).states
 
     # remove the batch dimension
-    h_state = tf.squeeze(h_state, 0)
+    c_state = tf.squeeze(c_state, 0)
 
-    return tf.math.tanh(h_state).numpy()
+    return tf.math.tanh(c_state).numpy()
 
 def build_dataset(datapath, generative_model, char2idx, layer_idx):
     xs, ys = [], []
@@ -85,6 +86,10 @@ def train_classifier_model(train_dataset, test_dataset, C=2**np.arange(-8, 1).as
     sent_classfier = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
     sent_classfier.fit(trX, trY)
 
+    # Persist sentiment classifier
+    with open("./trained/sent_classfier.p", "wb") as f:
+        pickle.dump(sent_classfier, f)
+
     return sent_classfier.score(teX, teY) * 100.
 
 if __name__ == "__main__":
@@ -112,8 +117,6 @@ if __name__ == "__main__":
     generative_model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, batch_size=1)
     generative_model.load_weights(tf.train.latest_checkpoint(opt.model))
     generative_model.build(tf.TensorShape([1, None]))
-
-    generative_model.summary()
 
     # Build dataset from encoded labelled midis
     train_dataset = build_dataset(opt.train, generative_model, char2idx, opt.cellix)
