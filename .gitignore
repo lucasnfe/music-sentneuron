@@ -1,5 +1,6 @@
 char2idx.json
-training_checkpoints/*
+trained/*
 __pycache__/*
 *.mid
 *.midi
+*.png

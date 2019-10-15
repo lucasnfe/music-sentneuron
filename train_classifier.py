@@ -6,9 +6,13 @@ import argparse
 import numpy as np
 import tensorflow as tf
 import midi_encoder as me
+import plot_results as pr
 
 from train_generative import build_generative_model
 from sklearn.linear_model import LogisticRegression
+
+# Directory where trained model will be saved
+TRAIN_DIR = "./trained"
 
 def preprocess_sentence(text, front_pad='\n ', end_pad=''):
     text = text.replace('\n', ' ').strip()
@@ -32,6 +36,7 @@ def encode_sentence(model, text, char2idx, layer_idx):
     h_state, c_state = model.get_layer(index=layer_idx).states
 
     # remove the batch dimension
+    # h_state = tf.squeeze(h_state, 0)
     c_state = tf.squeeze(c_state, 0)
 
     return tf.math.tanh(c_state).numpy()
@@ -57,7 +62,7 @@ def build_dataset(datapath, generative_model, char2idx, layer_idx):
             text, vocab = me.load(phrase_path, transpose_range=1, stretching_range=1)
 
             # Encode midi text using generative lstm
-            encoding = encode_sentence(generative_model, text, char2idx, layer_idx=layer_idx)
+            encoding = encode_sentence(generative_model, text, char2idx, layer_idx)
 
             # Save encoding in file to make it faster to load next time
             np.save(encoded_path, encoding)
@@ -65,7 +70,21 @@ def build_dataset(datapath, generative_model, char2idx, layer_idx):
         xs.append(encoding)
         ys.append(label)
 
-    return xs, ys
+    return np.array(xs), np.array(ys)
+
+def get_top_k_neuron_weights(sent_classfier, k=1):
+    weights = sent_classfier.coef_.T
+    weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
+
+    if k == 1:
+        k_indices = np.array([np.argmax(weight_penalties)])
+    elif k >= np.log(len(weight_penalties)):
+        k_indices = np.argsort(weight_penalties)[-k:][::-1]
+    else:
+        k_indices = np.argpartition(weight_penalties, -k)[-k:]
+        k_indices = (k_indices[np.argsort(weight_penalties[k_indices])])[::-1]
+
+    return k_indices
 
 def train_classifier_model(train_dataset, test_dataset, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
     trX, trY = train_dataset
@@ -86,11 +105,25 @@ def train_classifier_model(train_dataset, test_dataset, C=2**np.arange(-8, 1).as
     sent_classfier = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
     sent_classfier.fit(trX, trY)
 
+    print("Test Accuracy:", sent_classfier.score(teX, teY) * 100.)
+
     # Persist sentiment classifier
-    with open("./trained/sent_classfier.p", "wb") as f:
+    with open(os.path.join(TRAIN_DIR, "sent_classfier.p"), "wb") as f:
         pickle.dump(sent_classfier, f)
 
-    return sent_classfier.score(teX, teY) * 100.
+    # Get activated neurons
+    n_not_zero = len(np.argwhere(sent_classfier.coef_))
+    sentneuron_ixs = get_top_k_neuron_weights(sent_classfier, k=n_not_zero)
+
+    print("total sentneuron_ixs:", len(sentneuron_ixs))
+    print(sentneuron_ixs)
+
+    # Plot weights contribution
+    pr.plot_weight_contribs(sent_classfier.coef_)
+    pr.plot_logits(trX, trY, sentneuron_ixs)
+
+
+    return sentneuron_ixs
 
 if __name__ == "__main__":
 

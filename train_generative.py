@@ -6,6 +6,9 @@ import tensorflow as tf
 
 import midi_encoder as me
 
+# Directory where the checkpoints will be saved
+TRAIN_DIR = "./trained"
+
 def build_generative_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch_size, dropout=0):
     model = tf.keras.Sequential()
 
@@ -39,11 +42,8 @@ def train_generative_model(model, train_dataset, test_dataset, epochs, learning_
     # Compile model with Adam optimizer and crossentropy Loss funciton
     model.compile(optimizer=optimizer, loss=generative_loss)
 
-    # Directory where the checkpoints will be saved
-    checkpoint_dir = './trained'
-
     # Name of the checkpoint files
-    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
+    checkpoint_prefix = os.path.join(TRAIN_DIR, "ckpt_{epoch}")
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix, save_weights_only=True)
 
     return model.fit(train_dataset, epochs=epochs, validation_data=test_dataset, callbacks=[checkpoint_callback])
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     char2idx = { char:i for i,char in enumerate(vocab) }
 
     # Save char2idx encoding as a json file for generate midi later
-    with open("char2idx.json", "w") as f:
+    with open(os.path.join(TRAIN_DIR, "char2idx.json", "w")) as f:
         json.dump(char2idx, f)
 
     # Build dataset from encoded unlabelled midis

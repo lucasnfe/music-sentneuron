@@ -1,9 +1,12 @@
+import os
 import json
 import argparse
 import tensorflow as tf
 import midi_encoder as me
 
 from train_generative import build_generative_model
+
+GENERATED_DIR = './generated'
 
 def generate_midi(model, char2idx, idx2char, start_string="\n", sequence_length=256, temperature=1.0):
     # Converting our start string to numbers (vectorizing)
@@ -68,4 +71,4 @@ if __name__ == "__main__":
     midi_txt = generate_midi(model, char2idx, idx2char, opt.seqinit, opt.seqlen, opt.temp)
     print(midi_txt)
 
-    me.write(midi_txt, "generated.mid")
+    me.write(midi_txt, os.path.join(GENERATED_DIR, "generated.mid"))
