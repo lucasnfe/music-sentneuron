@@ -84,7 +84,7 @@ if __name__ == "__main__":
     char2idx = { char:i for i,char in enumerate(vocab) }
 
     # Save char2idx encoding as a json file for generate midi later
-    with open(os.path.join(TRAIN_DIR, "char2idx.json", "w")) as f:
+    with open(os.path.join(TRAIN_DIR, "char2idx.json"), "w") as f:
         json.dump(char2idx, f)
 
     # Build dataset from encoded unlabelled midis

@@ -47,7 +47,7 @@ python3 midi_generator.py --model trained --ch2ix trained/char2idx.json --embed 
 #### 2. Encode the labelled pieces with the final cell states of the generative LSTM and train a Logistic Regression to classify sentiment in symbolic music:
 
 ```
-python3 train_classifier.py --model trained --ch2ix trained/char2idx.json --embed 256 --units 4096 --layers 1 --train vgmidi/labelled/vgmidi_sent_train.csv --test vgmidi/labelled/vgmidi_sent_test.csv --cellix 1
+python3 train_classifier.py --model trained --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --train vgmidi/labelled/vgmidi_sent_train.csv --test vgmidi/labelled/vgmidi_sent_test.csv --cellix 4
 ```
 
 ### (b) Generative
