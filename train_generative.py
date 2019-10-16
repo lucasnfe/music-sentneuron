@@ -59,6 +59,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='train_generative.py')
     parser.add_argument('--train', type=str, required=True, help="Train dataset.")
     parser.add_argument('--test' , type=str, required=True, help="Test dataset.")
+    parser.add_argument('--model', type=str, required=False, help="Checkpoint dir.")
     parser.add_argument('--embed', type=int, default=256, help="Embedding size.")
     parser.add_argument('--units', type=int, default=512, help="LSTM units.")
     parser.add_argument('--layers', type=int, default=2, help="LSTM layers.")
@@ -93,6 +94,10 @@ if __name__ == "__main__":
 
     # Build generative model
     generative_model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch, opt.drop)
+
+    # If pre-trained model was given as argument, load its weights
+    if opt.model:
+        generative_model.load_weights(tf.train.latest_checkpoint(opt.model))
 
     # Train model
     history = train_generative_model(generative_model, train_dataset, test_dataset, opt.epochs, opt.lrate)
