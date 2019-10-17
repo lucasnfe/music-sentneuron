@@ -9,6 +9,9 @@ import midi_encoder as me
 # Directory where the checkpoints will be saved
 TRAIN_DIR = "./trained"
 
+def generative_loss(labels, logits):
+    return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
+
 def build_generative_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch_size, dropout=0):
     model = tf.keras.Sequential()
 
@@ -21,6 +24,23 @@ def build_generative_model(vocab_size, embed_dim, lstm_units, lstm_layers, batch
 
     return model
 
+def build_char2idx(train_vocab, test_vocab):
+    # Merge train and test vocabulary
+    vocab = list(train_vocab | test_vocab)
+    vocab.sort()
+
+    # Calculate vocab size
+    vocab_size = len(vocab)
+
+    # Create dict to support char to index conversion
+    char2idx = { char:i for i,char in enumerate(vocab) }
+
+    # Save char2idx encoding as a json file for generate midi later
+    with open(os.path.join(TRAIN_DIR, "char2idx.json"), "w") as f:
+        json.dump(char2idx, f)
+
+    return char2idx, vocab_size
+
 def build_dataset(text, char2idx, seq_length, batch_size, buffer_size=10000):
     text_as_int = np.array([char2idx[c] for c in text.split(" ")])
     char_dataset = tf.data.Dataset.from_tensor_slices(text_as_int)
@@ -32,18 +52,13 @@ def build_dataset(text, char2idx, seq_length, batch_size, buffer_size=10000):
 
     return dataset
 
-def generative_loss(labels, logits):
-    return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
-
 def train_generative_model(model, train_dataset, test_dataset, epochs, learning_rate):
-    # Create Adam optimizer
+    # Compile model with given optimizer and defined loss
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-
-    # Compile model with Adam optimizer and crossentropy Loss funciton
     model.compile(optimizer=optimizer, loss=generative_loss)
 
     # Name of the checkpoint files
-    checkpoint_prefix = os.path.join(TRAIN_DIR, "ckpt_{epoch}")
+    checkpoint_prefix = os.path.join(TRAIN_DIR, "generative_ckpt")
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_prefix, save_weights_only=True)
 
     return model.fit(train_dataset, epochs=epochs, validation_data=test_dataset, callbacks=[checkpoint_callback])
@@ -74,19 +89,8 @@ if __name__ == "__main__":
     train_text, train_vocab = me.load(opt.train)
     test_text, test_vocab = me.load(opt.test)
 
-    # Merge train and test vocabulary
-    vocab = list(train_vocab | test_vocab)
-    vocab.sort()
-
-    # Calculate vocab size
-    vocab_size = len(vocab)
-
-    # Create dict to support char to index conversion
-    char2idx = { char:i for i,char in enumerate(vocab) }
-
-    # Save char2idx encoding as a json file for generate midi later
-    with open(os.path.join(TRAIN_DIR, "char2idx.json"), "w") as f:
-        json.dump(char2idx, f)
+    # Build dictionary to map from char to integers
+    char2idx, vocab_size = build_char2idx(train_vocab, test_vocab)
 
     # Build dataset from encoded unlabelled midis
     train_dataset = build_dataset(train_text, char2idx, opt.seqlen, opt.batch)
@@ -95,8 +99,9 @@ if __name__ == "__main__":
     # Build generative model
     generative_model = build_generative_model(vocab_size, opt.embed, opt.units, opt.layers, opt.batch, opt.drop)
 
-    # If pre-trained model was given as argument, load its weights
     if opt.model:
+        # If pre-trained model was given as argument, load weights from disk
+        print("Loading weights...")
         generative_model.load_weights(tf.train.latest_checkpoint(opt.model))
 
     # Train model

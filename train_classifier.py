@@ -108,7 +108,7 @@ def train_classifier_model(train_dataset, test_dataset, C=2**np.arange(-8, 1).as
     print("Test Accuracy:", sent_classfier.score(teX, teY) * 100.)
 
     # Persist sentiment classifier
-    with open(os.path.join(TRAIN_DIR, "sent_classfier.p"), "wb") as f:
+    with open(os.path.join(TRAIN_DIR, "classifier_ckpt.p"), "wb") as f:
         pickle.dump(sent_classfier, f)
 
     # Get activated neurons
