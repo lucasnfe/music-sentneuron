@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+import numpy as np
 import tensorflow as tf
 import midi_encoder as me
 
@@ -8,7 +9,7 @@ from train_generative import build_generative_model
 
 GENERATED_DIR = './generated'
 
-def generate_midi(model, char2idx, idx2char, start_string="\n", sequence_length=256, temperature=1.0):
+def generate_midi(model, char2idx, idx2char, start_string="\n", sequence_length=256, temperature=1.0, k=3):
     # Converting our start string to numbers (vectorizing)
     input_eval = [char2idx[s] for s in start_string.split(" ")]
 
@@ -24,11 +25,18 @@ def generate_midi(model, char2idx, idx2char, start_string="\n", sequence_length=
         predictions = model(input_eval)
 
         # remove the batch dimension
-        predictions = tf.squeeze(predictions, 0)
+        predictions = tf.squeeze(predictions, 0).numpy()
 
-        # using a categorical distribution to predict the word returned by the model
-        predictions = predictions / temperature
-        predicted_id = tf.random.categorical(predictions, num_samples=1)[-1,0].numpy()
+        # Sample using a categorical distribution over the top k midi chars
+        top_k = tf.math.top_k(predictions, k)
+        top_k_choices = top_k[1].numpy().squeeze()
+        top_k_values = top_k[0].numpy().squeeze()
+
+        if np.random.uniform(0, 1) < .5:
+            predicted_id = top_k_choices[0]
+        else:
+            p_choices = tf.math.softmax(top_k_values[1:]).numpy()
+            predicted_id = np.random.choice(top_k_choices[1:], 1, p=p_choices)[0]
 
         # We pass the predicted word as the next input to the model
         # along with the previous hidden state
