@@ -115,13 +115,12 @@ def train_classifier_model(train_dataset, test_dataset, C=2**np.arange(-8, 1).as
     n_not_zero = len(np.argwhere(sent_classfier.coef_))
     sentneuron_ixs = get_top_k_neuron_weights(sent_classfier, k=n_not_zero)
 
-    print("total sentneuron_ixs:", len(sentneuron_ixs))
+    print("Total Neurons Used:", len(sentneuron_ixs))
     print(sentneuron_ixs)
 
     # Plot weights contribution
     pr.plot_weight_contribs(sent_classfier.coef_)
     pr.plot_logits(trX, trY, sentneuron_ixs)
-
 
     return sentneuron_ixs
 
