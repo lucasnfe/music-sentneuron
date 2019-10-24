@@ -72,20 +72,6 @@ def build_dataset(datapath, generative_model, char2idx, layer_idx):
 
     return np.array(xs), np.array(ys)
 
-def get_top_k_neuron_weights(sent_classfier, k=1):
-    weights = sent_classfier.coef_.T
-    weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
-
-    if k == 1:
-        k_indices = np.array([np.argmax(weight_penalties)])
-    elif k >= np.log(len(weight_penalties)):
-        k_indices = np.argsort(weight_penalties)[-k:][::-1]
-    else:
-        k_indices = np.argpartition(weight_penalties, -k)[-k:]
-        k_indices = (k_indices[np.argsort(weight_penalties[k_indices])])[::-1]
-
-    return k_indices
-
 def train_classifier_model(train_dataset, test_dataset, C=2**np.arange(-8, 1).astype(np.float), seed=42, penalty="l1"):
     trX, trY = train_dataset
     teX, teY = test_dataset
@@ -105,24 +91,36 @@ def train_classifier_model(train_dataset, test_dataset, C=2**np.arange(-8, 1).as
     sent_classfier = LogisticRegression(C=c, penalty=penalty, random_state=seed+len(C), solver="liblinear")
     sent_classfier.fit(trX, trY)
 
-    print("Test Accuracy:", sent_classfier.score(teX, teY) * 100.)
+    score =  sent_classfier.score(teX, teY) * 100.
 
     # Persist sentiment classifier
     with open(os.path.join(TRAIN_DIR, "classifier_ckpt.p"), "wb") as f:
         pickle.dump(sent_classfier, f)
 
     # Get activated neurons
-    n_not_zero = len(np.argwhere(sent_classfier.coef_))
-    sentneuron_ixs = get_top_k_neuron_weights(sent_classfier, k=n_not_zero)
+    sentneuron_ixs = get_activated_neurons(sent_classfier)
 
-    print("Total Neurons Used:", len(sentneuron_ixs))
-    print(sentneuron_ixs)
-
-    # Plot weights contribution
+    # Plot results
     pr.plot_weight_contribs(sent_classfier.coef_)
     pr.plot_logits(trX, trY, sentneuron_ixs)
 
-    return sentneuron_ixs
+    return sentneuron_ixs, score
+
+def get_activated_neurons(sent_classfier):
+    neurons_not_zero = len(np.argwhere(sent_classfier.coef_))
+
+    weights = sent_classfier.coef_.T
+    weight_penalties = np.squeeze(np.linalg.norm(weights, ord=1, axis=1))
+
+    if neurons_not_zero == 1:
+        neuron_ixs = np.array([np.argmax(weight_penalties)])
+    elif neurons_not_zero >= np.log(len(weight_penalties)):
+        neuron_ixs = np.argsort(weight_penalties)[-neurons_not_zero:][::-1]
+    else:
+        neuron_ixs = np.argpartition(weight_penalties, -neurons_not_zero)[-neurons_not_zero:]
+        neuron_ixs = (neuron_ixs[np.argsort(weight_penalties[neuron_ixs])])[::-1]
+
+    return neuron_ixs
 
 if __name__ == "__main__":
 
@@ -155,5 +153,7 @@ if __name__ == "__main__":
     test_dataset = build_dataset(opt.test, generative_model, char2idx, opt.cellix)
 
     # Train model
-    score = train_classifier_model(train_dataset, test_dataset)
-    print(score)
+    sentneuron_ixs, score = train_classifier_model(train_dataset, test_dataset)
+
+    print("Total Neurons Used:", len(sentneuron_ixs), "\n", sentneuron_ixs)
+    print("Test Accuracy:", score)
