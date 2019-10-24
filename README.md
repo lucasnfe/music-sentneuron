@@ -35,19 +35,19 @@ music with sentiment.
 #### 1. Train a generative LSTM on unlabelled pieces:
 
 ```
-python3 train_generative.py --train vgmidi/unlabelled/train/ --test vgmidi/unlabelled/test/ --embed 256 --units 512 --layers 4 --batch 64 --lrate 0.00001 --seqlen 256 --drop 0.05 --epochs 10
+python3.7 train_generative.py --train ../vgmidi/unlabelled/train/ --test ../vgmidi/unlabelled/test/ --embed 256 --units 512 --layers 4 --batch 64 --epochs 15 --lrate 0.00001 --seqlen 256 --drop 0.05
 ```
 
 To sample from this trained generative model (it can't be controlled yet):
 
 ```
-python3 midi_generator.py --model trained --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4
+python3.7 midi_generator.py --model trained --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4
 ```
 
 #### 2. Encode the labelled pieces with the final cell states of the generative LSTM and train a Logistic Regression to classify sentiment in symbolic music:
 
 ```
-python3 train_classifier.py --model trained --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --train vgmidi/labelled/vgmidi_sent_train.csv --test vgmidi/labelled/vgmidi_sent_test.csv --cellix 4
+python3.7 train_classifier.py --model trained --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --train ../vgmidi/labelled/vgmidi_sent_train.csv --test ../vgmidi/labelled/vgmidi_sent_test.csv --cellix 4
 ```
 
 ### (b) Generative
