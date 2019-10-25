@@ -73,7 +73,7 @@ def select(population, fitness_pop, mating_pool_size, ind_size, elite_rate):
 
     return mating_pool
 
-def calc_fitness(individual, gen_model, cls_model, char2idx, idx2char, layer_idx, sentiment, runs=3):
+def calc_fitness(individual, gen_model, cls_model, char2idx, idx2char, layer_idx, sentiment, runs=30):
     encoding_size = gen_model.layers[layer_idx].units
     generated_midis = np.zeros((runs, encoding_size))
 
