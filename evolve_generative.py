@@ -108,11 +108,21 @@ def evolve(pop_size, ind_size, mut_rate, elite_rate, epochs):
 
     for i in range(epochs):
         print("-> Epoch", i)
+
+        # Calculate fitness of each individual of the population
         fitness_pop = evaluate(population, gen_model, cls_model, char2idx, idx2char, opt.cellix, opt.sent)
         print("--> Fitness: \n", fitness_pop)
 
+        # Select individuals via roulette wheel to form a mating pool
         mating_pool = select(population, fitness_pop, pop_size, ind_size, elite_rate)
+
+        # Reproduce matin pool with crossover and mutation to form new population
         population = reproduce(mating_pool, pop_size, ind_size, mut_rate)
+
+    # Evaluate last population
+    fitness_pop = evaluate(population, gen_model, cls_model, char2idx, idx2char, opt.cellix, opt.sent)
+
+    return population, fitness_pop
 
 if __name__ == "__main__":
 
@@ -156,4 +166,7 @@ if __name__ == "__main__":
     sentneuron_ixs = get_activated_neurons(cls_model)
     ind_size = len(sentneuron_ixs)
 
-    evolve(opt.popsize, ind_size, opt.mrate, opt.elitism, opt.epochs)
+    population, fitness_pop = evolve(opt.popsize, ind_size, opt.mrate, opt.elitism, opt.epochs)
+
+    print(population)
+    print(fitness_pop)
