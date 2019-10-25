@@ -6,45 +6,82 @@ import tensorflow as tf
 import midi_encoder as me
 
 from train_generative import build_generative_model
+from train_classifier import preprocess_sentence
 
 GENERATED_DIR = './generated'
 
-def generate_midi(model, char2idx, idx2char, start_string="\n", sequence_length=256, temperature=1.0, k=3):
-    # Converting our start string to numbers (vectorizing)
-    input_eval = [char2idx[s] for s in start_string.split(" ")]
+def override_neurons(model, layer_idx, override):
+    h_state, c_state = model.get_layer(index=layer_idx).states
 
-    # Add the batch dimension
-    input_eval = tf.expand_dims(input_eval, 0)
+    c_state = c_state.numpy()
+    for neuron, value in override.items():
+        c_state[:,int(neuron)] = int(value)
 
-    # Empty string to store our results
+    model.get_layer(index=layer_idx).states = (h_state, tf.Variable(c_state))
+
+def sample_next(predictions, k):
+    # Sample using a categorical distribution over the top k midi chars
+    top_k = tf.math.top_k(predictions, k)
+    top_k_choices = top_k[1].numpy().squeeze()
+    top_k_values = top_k[0].numpy().squeeze()
+
+    if np.random.uniform(0, 1) < .5:
+        predicted_id = top_k_choices[0]
+    else:
+        p_choices = tf.math.softmax(top_k_values[1:]).numpy()
+        predicted_id = np.random.choice(top_k_choices[1:], 1, p=p_choices)[0]
+
+    return predicted_id
+
+def process_init_text(model, init_text, char2idx, layer_idx, override):
+    model.reset_states()
+
+    for c in init_text.split(" "):
+        # Run a forward pass
+        try:
+            input_eval = tf.expand_dims([char2idx[c]], 0)
+
+            # override sentiment neurons
+            override_neurons(model, layer_idx, override)
+
+            predictions = model(input_eval)
+        except KeyError:
+            if c != "":
+                print("Can't process char", s)
+
+    return predictions
+
+
+def generate_midi(model, char2idx, idx2char, init_text="", seq_len=256, k=3, layer_idx=-2, override={}):
+    # Add front and end pad to the initial text
+    init_text = preprocess_sentence(init_text)
+
+    # Empty midi to store our results
     midi_generated = []
+
+    # Process initial text
+    predictions = process_init_text(model, init_text, char2idx, layer_idx, override)
 
     # Here batch size == 1
     model.reset_states()
-    for i in range(sequence_length):
-        predictions = model(input_eval)
-
+    for i in range(seq_len):
         # remove the batch dimension
         predictions = tf.squeeze(predictions, 0).numpy()
 
         # Sample using a categorical distribution over the top k midi chars
-        top_k = tf.math.top_k(predictions, k)
-        top_k_choices = top_k[1].numpy().squeeze()
-        top_k_values = top_k[0].numpy().squeeze()
+        predicted_id = sample_next(predictions, k)
 
-        if np.random.uniform(0, 1) < .5:
-            predicted_id = top_k_choices[0]
-        else:
-            p_choices = tf.math.softmax(top_k_values[1:]).numpy()
-            predicted_id = np.random.choice(top_k_choices[1:], 1, p=p_choices)[0]
-
-        # We pass the predicted word as the next input to the model
-        # along with the previous hidden state
-        input_eval = tf.expand_dims([predicted_id], 0)
-
+         # Append it to generated midi
         midi_generated.append(idx2char[predicted_id])
 
-    return start_string + " " + " ".join(midi_generated)
+        # override sentiment neurons
+        override_neurons(model, layer_idx, override)
+
+        #Run a new forward pass
+        input_eval = tf.expand_dims([predicted_id], 0)
+        predictions = model(input_eval)
+
+    return init_text + " " + " ".join(midi_generated)
 
 if __name__ == "__main__":
 
@@ -57,7 +94,6 @@ if __name__ == "__main__":
     parser.add_argument('--layers', type=int, required=True, help="LSTM layers.")
     parser.add_argument('--seqinit', type=str, default="\n", help="Sequence init.")
     parser.add_argument('--seqlen', type=int, default=256, help="Sequence lenght.")
-    parser.add_argument('--temp', type=float, default=1.0, help="Sampling temperature.")
     opt = parser.parse_args()
 
     # Load char2idx dict from json file
@@ -76,7 +112,7 @@ if __name__ == "__main__":
     model.build(tf.TensorShape([1, None]))
 
     # Generate a midi as text
-    midi_txt = generate_midi(model, char2idx, idx2char, opt.seqinit, opt.seqlen, opt.temp)
+    midi_txt = generate_midi(model, char2idx, idx2char, opt.seqinit, opt.seqlen)
     print(midi_txt)
 
     me.write(midi_txt, os.path.join(GENERATED_DIR, "generated.mid"))

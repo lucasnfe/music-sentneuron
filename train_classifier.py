@@ -25,13 +25,14 @@ def encode_sentence(model, text, char2idx, layer_idx):
     # Reset LSTMs hidden and cell states
     model.reset_states()
 
-    for s in text.split(" "):
+    for c in text.split(" "):
         # Add the batch dimension
         try:
-            input_eval = tf.expand_dims([char2idx[s]], 0)
+            input_eval = tf.expand_dims([char2idx[c]], 0)
             predictions = model(input_eval)
         except KeyError:
-            print("Could not process char:", s)
+            if c != "":
+                print("Can't process char", c)
 
     h_state, c_state = model.get_layer(index=layer_idx).states
 
