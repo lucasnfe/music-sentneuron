@@ -1,3 +1,4 @@
+import os
 import json
 import pickle
 import argparse
@@ -12,6 +13,9 @@ from train_generative import build_generative_model
 
 GEN_MIN = -1
 GEN_MAX =  1
+
+# Directory where trained model will be saved
+TRAIN_DIR = "./trained"
 
 def mutation(individual, mutation_rate):
     for i in range(len(individual)):
@@ -168,5 +172,21 @@ if __name__ == "__main__":
 
     population, fitness_pop = evolve(opt.popsize, ind_size, opt.mrate, opt.elitism, opt.epochs)
 
-    print(population)
-    print(fitness_pop)
+    # Get best individual
+    best_idx = np.argmax(fitness_pop)
+    best_individual = population[best_idx]
+
+    # Use best individual gens to create a dictionary with cell values
+    neurons = {}
+    for i, ix in enumerate(sentneuron_ixs):
+        neurons[ix] = best_individual[i]
+
+    print(neurons)
+
+    # Persist dictionary with cell values
+    sent = "positive"
+    if opt.sent < 0:
+        sent = "negative"
+
+    with open(os.path.join(TRAIN_DIR, "neurons_" + sent + ".json"), "w") as f:
+        json.dump(neurons, f)
