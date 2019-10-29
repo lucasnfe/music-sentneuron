@@ -87,3 +87,17 @@ python3 midi_generator.py --model trained/ --ch2ix trained/char2idx.json --embed
 ```
 python3 midi_generator.py --model trained/ --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --seqlen 512 --override trained/neurons_negative.json --cellix 4
 ```
+
+## Citing this Work
+
+If you use this method in your research, please cite:
+
+```
+@article{ferreira_ismir_2019,
+  title={Learning to Generate Music with Sentiment},
+  author={Ferreira, Lucas N. and Whitehead, Jim},
+  booktitle = {Proceedings of the Conference of the International Society for Music Information Retrieval},
+  series = {ISMIR'19},
+  year={2019},
+}
+```
