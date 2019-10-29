@@ -22,11 +22,8 @@ def mutation(individual, mutation_rate):
             individual[i] = np.random.uniform(GEN_MIN, GEN_MAX)
 
 def crossover(parent_a, parent_b, ind_size):
-    # Generate random mid point
-    p = int(np.random.randint(ind_size));
-
-    # Return the combination of first part from parent_a and second part from parent_b
-    return np.concatenate([parent_a[:p], parent_b[p:]])
+    # Averaging crossover
+    return (parent_a + parent_b)/2
 
 def reproduce(mating_pool, new_population_size, ind_size, mutation_rate):
     new_population = np.zeros((new_population_size, ind_size))
@@ -109,12 +106,12 @@ def evolve(pop_size, ind_size, mut_rate, elite_rate, epochs):
     # Create initial population
     population = np.random.uniform(GEN_MIN, GEN_MAX, (pop_size, ind_size))
 
+    # Evaluate initial population
+    fitness_pop = evaluate(population, gen_model, cls_model, char2idx, idx2char, opt.cellix, opt.sent)
+    print("--> Fitness: \n", fitness_pop)
+
     for i in range(epochs):
         print("-> Epoch", i)
-
-        # Calculate fitness of each individual of the population
-        fitness_pop = evaluate(population, gen_model, cls_model, char2idx, idx2char, opt.cellix, opt.sent)
-        print("--> Fitness: \n", fitness_pop)
 
         # Select individuals via roulette wheel to form a mating pool
         mating_pool = select(population, fitness_pop, pop_size, ind_size, elite_rate)
@@ -122,8 +119,9 @@ def evolve(pop_size, ind_size, mut_rate, elite_rate, epochs):
         # Reproduce matin pool with crossover and mutation to form new population
         population = reproduce(mating_pool, pop_size, ind_size, mut_rate)
 
-    # Evaluate last population
-    fitness_pop = evaluate(population, gen_model, cls_model, char2idx, idx2char, opt.cellix, opt.sent)
+        # Calculate fitness of each individual of the population
+        fitness_pop = evaluate(population, gen_model, cls_model, char2idx, idx2char, opt.cellix, opt.sent)
+        print("--> Fitness: \n", fitness_pop)
 
     return population, fitness_pop
 
