@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 
 from midi_generator import generate_midi
-from midi_generator import override_neurons
 from train_classifier import encode_sentence
 from train_classifier import get_activated_neurons
 from train_generative import build_generative_model
@@ -185,7 +184,7 @@ if __name__ == "__main__":
 
     # Persist dictionary with cell values
     sent = "positive"
-    if opt.sent < 0:
+    if opt.sent <= 0:
         sent = "negative"
 
     with open(os.path.join(TRAIN_DIR, "neurons_" + sent + ".json"), "w") as f:

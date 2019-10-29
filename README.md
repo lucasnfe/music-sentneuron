@@ -32,13 +32,15 @@ music with sentiment.
 
 ### (a) Sentiment Analysis
 
+To train a sentiment classifier of symbolic music:
+
 #### 1. Train a generative LSTM on unlabelled pieces:
 
 ```
 python3.7 train_generative.py --train ../vgmidi/unlabelled/train/ --test ../vgmidi/unlabelled/test/ --embed 256 --units 512 --layers 4 --batch 64 --epochs 15 --lrate 0.00001 --seqlen 256 --drop 0.05
 ```
-
-To sample from this trained generative model (it can't be controlled yet):
+This script saves a checkpoint of the trained model after every epoch in the "trained/" folder.
+To sample from this trained generative model (without sentiment control):
 
 ```
 python3.7 midi_generator.py --model trained --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4
@@ -50,6 +52,26 @@ python3.7 midi_generator.py --model trained --ch2ix trained/char2idx.json --embe
 python3.7 train_classifier.py --model trained --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --train ../vgmidi/labelled/vgmidi_sent_train.csv --test ../vgmidi/labelled/vgmidi_sent_test.csv --cellix 4
 ```
 
+After running this script, a binary file named "classifier_ckpt.p" containing the trained classifier logistic
+regression is saved in the "trained/" folder.
+
 ### (b) Generative
 
-TODO
+To control the sentiment of the trained generative LSTM, we evolve the values of the neurons activated during
+training the logistic regression classifier.
+
+#### 1. Evolve neurons to generate positive pieces
+
+```
+evolve_generative.py --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --genmodel trained/ --clsmodel trained/classifier_ckpt.p --cellix 4 --elitism 0.1 --epochs 10 --sent 1
+```
+
+After running this script, a json file named "neurons_positive.json" containing the neuron values that control the generative model to be positive is saved in the "trained/" folder.
+
+#### 2. Evolve neurons to generate positive pieces
+
+```
+evolve_generative.py --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --genmodel trained/ --clsmodel trained/classifier_ckpt.p --cellix 4 --elitism 0.1 --epochs 10 --sent 0
+```
+
+After running this script, a json file named "neurons_negative.json" containing the neuron values that control the generative model to be netagive is saved in the "trained/" folder.

@@ -37,10 +37,10 @@ def encode_sentence(model, text, char2idx, layer_idx):
     h_state, c_state = model.get_layer(index=layer_idx).states
 
     # remove the batch dimension
-    # h_state = tf.squeeze(h_state, 0)
-    c_state = tf.squeeze(c_state, 0)
+    h_state = tf.squeeze(h_state, 0)
+    # c_state = tf.squeeze(c_state, 0)
 
-    return tf.math.tanh(c_state).numpy()
+    return tf.math.tanh(h_state).numpy()
 
 def build_dataset(datapath, generative_model, char2idx, layer_idx):
     xs, ys = [], []

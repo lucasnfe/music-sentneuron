@@ -51,7 +51,6 @@ def process_init_text(model, init_text, char2idx, layer_idx, override):
 
     return predictions
 
-
 def generate_midi(model, char2idx, idx2char, init_text="", seq_len=256, k=3, layer_idx=-2, override={}):
     # Add front and end pad to the initial text
     init_text = preprocess_sentence(init_text)
@@ -94,11 +93,22 @@ if __name__ == "__main__":
     parser.add_argument('--layers', type=int, required=True, help="LSTM layers.")
     parser.add_argument('--seqinit', type=str, default="\n", help="Sequence init.")
     parser.add_argument('--seqlen', type=int, default=256, help="Sequence lenght.")
+    parser.add_argument('--cellix', type=int, default=-2, help="LSTM layer to use as encoder.")
+    parser.add_argument('--override', type=str, default="", help="JSON file with neuron values to override.")
     opt = parser.parse_args()
 
     # Load char2idx dict from json file
     with open(opt.ch2ix) as f:
         char2idx = json.load(f)
+
+    # Load override dict from json file
+    override = {}
+
+    try:
+        with open(opt.override) as f:
+            override = json.load(f)
+    except FileNotFoundError:
+        print("Override JSON file not provided.")
 
     # Create idx2char from char2idx dict
     idx2char = {idx:char for char,idx in char2idx.items()}
@@ -112,7 +122,7 @@ if __name__ == "__main__":
     model.build(tf.TensorShape([1, None]))
 
     # Generate a midi as text
-    midi_txt = generate_midi(model, char2idx, idx2char, opt.seqinit, opt.seqlen)
+    midi_txt = generate_midi(model, char2idx, idx2char, opt.seqinit, opt.seqlen, layer_idx=opt.cellix, override=override)
     print(midi_txt)
 
     me.write(midi_txt, os.path.join(GENERATED_DIR, "generated.mid"))
