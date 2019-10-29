@@ -179,7 +179,7 @@ if __name__ == "__main__":
     # Use best individual gens to create a dictionary with cell values
     neurons = {}
     for i, ix in enumerate(sentneuron_ixs):
-        neurons[ix] = best_individual[i]
+        neurons[str(ix)] = best_individual[i]
 
     print(neurons)
 
