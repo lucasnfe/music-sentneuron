@@ -68,10 +68,22 @@ evolve_generative.py --ch2ix trained/char2idx.json --embed 256 --units 512 --lay
 
 After running this script, a json file named "neurons_positive.json" containing the neuron values that control the generative model to be positive is saved in the "trained/" folder.
 
-#### 2. Evolve neurons to generate positive pieces
+#### 2. Evolve neurons to generate negative pieces
 
 ```
-evolve_generative.py --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --genmodel trained/ --clsmodel trained/classifier_ckpt.p --cellix 4 --elitism 0.1 --epochs 10 --sent 0
+python3.7 midi_generator.py --model trained --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --cellix
 ```
 
 After running this script, a json file named "neurons_negative.json" containing the neuron values that control the generative model to be netagive is saved in the "trained/" folder.
+
+#### 3. Generate positive pieces
+
+```
+python3 midi_generator.py --model trained/ --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --seqlen 512 --override trained/neurons_positive.json --cellix 4
+```
+
+#### 4. Generate negative pieces
+
+```
+python3 midi_generator.py --model trained/ --ch2ix trained/char2idx.json --embed 256 --units 512 --layers 4 --seqlen 512 --override trained/neurons_negative.json --cellix 4
+```
