@@ -3,7 +3,7 @@
 This repository contains the source code to reproduce the results of the [ISMIR'19](https://ismir2019.ewi.tudelft.nl/)
 paper [Learning to Generate Music with Sentiment](http://www.lucasnferreira.com/papers/2019/ismir-learning.pdf).
 This paper presented a generative LSTM that can be controlled to generate symbolic music with a given sentiment
-(positive or negative). The LSTM is controlled by optimizing the weights of specific neurons that are responsible
+(positive or negative). The LSTM is controlled by optimizing with a Genetic Algorithm the weights of specific neurons that are responsible
 for the sentiment signal. Such neurons are found plugging a Logistic Regression to the LSTM and training the
 Logistic Regression to classify sentiment of symbolic music encoded with the mLSTM hidden states.
 
