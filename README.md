@@ -7,6 +7,18 @@ This paper presented a generative LSTM that can be controlled to generate symbol
 for the sentiment signal. Such neurons are found plugging a Logistic Regression to the LSTM and training the
 Logistic Regression to classify sentiment of symbolic music encoded with the mLSTM hidden states.
 
+## Examples of Generated Pieces
+
+### Positive 
+- [Piece 1](https://raw.githubusercontent.com/lucasnfe/music-sentneuron/master/generated/generated_pos1.wav)
+- [Piece 2](https://raw.githubusercontent.com/lucasnfe/music-sentneuron/master/generated/generated_pos2.wav)
+- [Piece 3](https://raw.githubusercontent.com/lucasnfe/music-sentneuron/master/generated/generated_pos3.wav)
+
+### Negative
+- [Piece 3](https://raw.githubusercontent.com/lucasnfe/music-sentneuron/master/generated/generated_neg1.wav)
+- [Piece 4](https://raw.githubusercontent.com/lucasnfe/music-sentneuron/master/generated/generated_neg2.wav)
+- [Piece 5](https://raw.githubusercontent.com/lucasnfe/music-sentneuron/master/generated/generated_neg3.wav)
+
 ## Installing Dependencies
 
 This project depends on tensorflow (2.0), numpy and music21, so you need to install them first:
@@ -25,7 +37,7 @@ own [GitHub repo](https://github.com/lucasnfe/vgmidi). You can download it as fo
 $ git clone https://github.com/lucasnfe/vgmidi.git
 ```
 
-## Results
+## Reproducing Results
 
 This paper has two main results: (a) sentiment analysis of symbolic music and (b) generation of symbolic
 music with sentiment.
