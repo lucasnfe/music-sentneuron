@@ -31,7 +31,8 @@ $ pip3 install tensorflow tensorflow-gpu numpy music21
 
 A new dataset called VGMIDI was created for this paper. It contains 95 labelled pieces according to sentiment as well as 728
 non-labelled pieces. All pieces are piano arrangements of video game soundtracks in MIDI format. The VGMIDI dataset has its
-own [GitHub repo](https://github.com/lucasnfe/vgmidi). You can download it as follows:
+own [GitHub repo](https://github.com/lucasnfe/vgmidi) that is constantly updated. To reproduce the results of the ISMIR'19 paper, 
+use the **VGMIDI 0.1** that can be downloaded as follows:
 
 ```
 $ wget https://github.com/lucasnfe/vgmidi/archive/0.1.zip
